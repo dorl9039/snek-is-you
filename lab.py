@@ -19,6 +19,7 @@ direction_vector = {
 }
 
 
+
 def new_game(level_description):
     """
     Given a description of a game state, create and return a game
@@ -53,14 +54,12 @@ def new_game(level_description):
     
     return game
 
-
 def get_cell(game, i, j):
     """
     Given coordinates of row i and column j, returns the specified cell in the game representation.
     """
     cell = game["width"] * i + j
     return game["cells"][cell]
-
 
 def get_coordinates(game, c):
     """
@@ -86,7 +85,7 @@ def remove_word(game, location, word):
     game["cells"][c] = copy_cell
 
 
-def move_word(game, new_location, location, word):
+def move_word_append(game, new_location, location, word):
     """
     Parameters
     game: a dictionary that internally represents the game board.
@@ -102,6 +101,13 @@ def move_word(game, new_location, location, word):
 
     remove_word(game, location, word)
 
+def move_word_insert(game, new_location, location, word):
+    c = game['width'] * new_location[0] + new_location[1]
+    copy_cell = list(game["cells"][c])
+    copy_cell.insert(0, word)
+    game["cells"][c] = copy_cell
+
+    remove_word(game, location, word)
 
 def get_next_location(game, location, direction):
     """
@@ -115,7 +121,6 @@ def get_next_location(game, location, direction):
 
     if i + delta_i < 0:
         next_i = i
-        print(f"i + delta_i < 0. next_i {next_i} = i {i}")
     elif i + delta_i >= game["height"]:
         next_i = i
     else:
@@ -130,6 +135,36 @@ def get_next_location(game, location, direction):
 
     return (next_i, next_j)
 
+def get_opposite_location(game, location, direction):
+    """
+    Given a game representation (of the form returned from new_game), coordinates for a location 
+    (tuple), and a direction, returns the opposite location of the direction vector if the move is valid. Otherwise returns the original location (as a tuple)
+    """
+    i, j = location
+    delta_i = -(direction_vector[direction][0])
+    delta_j = -(direction_vector[direction][1])
+
+    if i + delta_i < 0:
+        next_i = i
+    elif i + delta_i >= game["height"]:
+        next_i = i
+    else:
+        next_i = i + delta_i
+
+    if j + delta_j < 0:
+        next_j = j
+    elif j + delta_j >= game["width"]:
+        next_j = j
+    else:
+        next_j = j + delta_j
+
+    return (next_i, next_j)
+
+roles = {
+    "snek": "YOU",
+    "rock": "PUSH", 
+    "wall": "STOP"
+    }
 
 def push(game, copy_game, location, direction, word=None):
     """
@@ -137,31 +172,75 @@ def push(game, copy_game, location, direction, word=None):
     """
     i, j = location
     next_i, next_j = get_next_location(game, (i,j), direction)
-
-    if i == next_i and j == next_j:
-        return False
-    
-    wall = "wall"
-    rock = "rock"
-
-    if wall in get_cell(game, next_i, next_j):
-        return False
-    elif len(get_cell(game, next_i, next_j)) != 0:
-        text = get_cell(game, next_i, next_j)[0]
-        result = push(game, copy_game, (next_i, next_j), direction, text)
-        if not result:
+    next_cell = get_cell(game, next_i, next_j)
+    opp_i, opp_j = get_opposite_location(game, (i,j), direction)
+    opp_cell = get_cell(game, opp_i, opp_j)
+    while word in get_cell(copy_game, i, j): 
+        result = True
+        if i == next_i and j == next_j:
             return False
-    remove_word(copy_game, (i, j), word)
-    move_word(game, (next_i, next_j), (i, j), word)
+
+        if len(next_cell) != 0:
+            # iterates through the cell in case a "STOP" object is within
+            for text in next_cell:
+                if roles.get(text) == "STOP":
+                    return False
+            for text in next_cell:
+                if roles.get(text) == "PUSH":
+                    result = push(game, copy_game, (next_i, next_j), direction, text)
+            # "YOU" objects do not have "STOP" property
+                if roles.get(text) == "YOU":
+                    remove_word(copy_game, (i, j), word)
+                    move_word_insert(game, (next_i, next_j), (i, j), word)
+                    return True
+                if not result:
+                     return False
+        if len(opp_cell) != 0:
+            for text in opp_cell:
+                if roles.get(text) == "PULL":
+                    remove_word(copy_game, (opp_i, opp_j), text)
+                    move_word_append(game, (i, j), (opp_i, opp_j),  text) 
+        remove_word(copy_game, (i, j), word)
+        move_word_insert(game, (next_i, next_j), (i, j), word)
+
 
     return True
 
+def pull(game, copy_game, location, direction, word=None):
+    i, j = location
+    next_i, next_j = get_next_location(game, (i,j), direction)
+    next_cell = get_cell(game, next_i, next_j)
+    opp_i, opp_j = get_opposite_location(game, (i,j), direction)
+    opp_cell = get_cell(game, opp_i, opp_j)
 
-roles = {
-    "snek": "YOU",
-    "rock": "PUSH", 
-    "wall": "STOP"
-    }
+    while word in get_cell(copy_game, i, j):
+        #base case: if opp_cell has "STOP" property
+        if len(next_cell) != 0:
+        # iterates through the cell in case a "STOP" object is within
+            for next_text in next_cell:
+                if roles.get(next_text) == "STOP" or (i == next_i and j == next_j):
+                    return False
+
+                elif roles.get(next_text) == "PUSH":
+                    remove_word(copy_game, (next_i, next_j), next_text)
+                    next2_i, next2_j = get_next_location(game, (next_i, next_j), direction)
+                    move_word_insert(game, (next2_i, next2_j), (next_i, next_j), next_text)
+        #base case: if opp_cell behind "YOU" obj is an edge:
+        if i == opp_i and j == opp_j:
+            remove_word (copy_game, (i, j), word)
+            move_word_append(game, (next_i, next_j), (i, j), word)
+            return False
+
+        if len(opp_cell) != 0:
+            for opp_text in opp_cell:
+                if roles.get(opp_text) == "PULL":
+                    pull(game, copy_game, (opp_i, opp_j), direction, opp_text)
+
+        remove_word(copy_game, (i, j), word)
+        move_word_append(game, (next_i, next_j), (i, j),  word) 
+
+    return True
+
 
 def step_game(game, direction):
     """
@@ -178,34 +257,94 @@ def step_game(game, direction):
         "width": game["width"],
         "cells": list(game["cells"])
     }
-    snek = "snek"
-    wall = "wall"
-    rock = "rock"
+    print()
+    print("direction", direction)
+    roles = {}
 
-    # Iterates through all the cells
-    for c in range(len(copy_game["cells"])):
-        # focuses on cells that have snek in them
-        while snek in copy_game["cells"][c]:
+    for word in WORDS:
+        roles[word] = "PUSH"
+
+    # parses rules on the board
+    for c in range(len(game["cells"])):
+        for text in game["cells"][c]:    
             i, j = get_coordinates(game, c)
-            next_i, next_j = get_next_location(game, (i, j), direction)
-            # snek can't move if wall is in its way
-            if wall in get_cell(game, next_i, next_j):
+            if text in NOUNS:
+                noun = text.lower()
+                right_i, right_j = get_next_location(game, (i, j), "right")
+                right_cell = get_cell(game, right_i, right_j)
+                down_i, down_j = get_next_location(game, (i, j), "down")
+                down_cell = get_cell (game, down_i, down_j)
+                
+                if "IS" in right_cell:
+                    next_right_i, next_right_j = get_next_location(game, (right_i, right_j), "right")
+                    next_right_cell = get_cell(game, next_right_i, next_right_j)
+                    for obj in next_right_cell:
+                        if obj in PROPERTIES:
+                            roles[noun] = obj
+                elif "IS" in down_cell:
+                    next_down_i, next_down_j = get_next_location(game, (down_i, down_j), "down")
+                    next_down_cell = get_cell(game, next_down_i, next_down_j)
+                    for obj in next_down_cell:
+                        if obj in PROPERTIES:
+                            roles[noun] = obj
+
+    for c in range(len(copy_game["cells"])):
+        i, j = get_coordinates(game, c)
+        next_i, next_j = get_next_location(game, (i, j), direction)
+        #can this just be stored as a tuple variable?
+        next_cell = get_cell(game, next_i, next_j)
+        opp_i, opp_j = get_opposite_location(game, (i, j), direction)
+        opp_cell = get_cell(game, opp_i, opp_j)
+        
+        for text in copy_game["cells"][c]:
+            move_YOU = True
+            if i == next_i and j == next_j:
                 break
 
-            # snek can push the rock, but only if there isn't a wall or edge in its way
-            elif rock in get_cell(game, next_i, next_j):
-                if not push(game, copy_game, (next_i, next_j), direction, rock):
-                    break
-            # snek can push text objects, but only if there isn't a wall or edge in its way
-            # and if other objects in front of it have push property
-            elif len(get_cell(game, next_i, next_j)) > 0 and get_cell(game, next_i, next_j)[0] in WORDS:
-                word = get_cell(game, next_i, next_j)[0]
-                if not push(game, copy_game, (next_i, next_j), direction, word):
+            # moves the YOU object
+            if roles.get(text) == "YOU":
+                if len(next_cell) != 0:
+                    for next_text in next_cell:
+                        if roles.get(next_text) == "PUSH":
+                            if not push(game, copy_game, (next_i, next_j), direction, next_text):
+                                move_YOU = False
+                                break
+                        elif roles.get(next_text) == "STOP":
+                            move_YOU = False
+                            break
+                        elif roles.get(next_text) == "DEFEAT":
+                            while text in game["cells"][c]:
+                                remove_word(game, (i, j), text)
+                            move_YOU = False
+                            break
+
+                if not move_YOU:
                     break
 
-            remove_word(copy_game, (i, j), snek)
-            move_word(game, (next_i, next_j), (i, j), snek)
+                if len(opp_cell) != 0:
+                    for opp_text in opp_cell:
+                        if roles.get(opp_text) == "PULL":
+                            if i == opp_i and j == opp_j:
+                                break
+                            pull(game, copy_game, (opp_i, opp_j), direction, opp_text)     
 
+                if move_YOU:
+                    remove_word(copy_game, (i, j), text)
+                    move_word_append(game, (next_i, next_j), (i, j), text)
+    # Victory check. Commented out b/c test 20 doesn't have WIN
+    
+    for x in roles:
+        if "YOU" in roles.get(x):
+            you = x
+        if "WIN" in roles.get(x):
+            win = x
+    try:
+        for c in range(len(copy_game["cells"])):
+            if you in game["cells"][c] and win in game["cells"][c]:
+                return True
+    except UnboundLocalError:
+        return False
+    
     return False
 
 
