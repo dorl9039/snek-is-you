@@ -19,18 +19,6 @@ direction_vector = {
 }
 
 
-class Text:
-    """
-    A subclass of class Word that represents a family of graphical objects on the board. E.g., "ROCK" refers to all graphical objects
-    represented by "rock". All Nouns can be assigned properties, which are specific behaviors like 
-    'push' and 'win'.
-    """
-    def __init__(self, word):
-        self.word = word
-
-SNEK = Text("SNEK")
-
-
 def new_game(level_description):
     """
     Given a description of a game state, create and return a game
@@ -65,12 +53,14 @@ def new_game(level_description):
     
     return game
 
+
 def get_cell(game, i, j):
     """
     Given coordinates of row i and column j, returns the specified cell in the game representation.
     """
     cell = game["width"] * i + j
     return game["cells"][cell]
+
 
 def get_coordinates(game, c):
     """
@@ -80,19 +70,6 @@ def get_coordinates(game, c):
     j = c % game["width"]
     return (i, j)
 
-def add_word(game, location, word):
-    """
-    Parameters
-    game: a dictionary that internally represents the game board.
-    location: a tuple with coordinates (i, j) of where the word should be added.
-    word: a string representing a Word object.
-
-    Mutates the given game representation to add word to new location.
-    """
-    c = game['width'] * location[0] + location[1]
-    copy_cell = list(game["cells"][c])
-    copy_cell.append(word)
-    game["cells"][c] = copy_cell
 
 def remove_word(game, location, word):
     """
@@ -105,16 +82,28 @@ def remove_word(game, location, word):
     """
     c = game["width"] * location[0] + location[1]
     copy_cell = list(game["cells"][c])
-    # print("copy_cell:", copy_cell)
-    # print("word:", word)
     copy_cell.remove(word)
     game["cells"][c] = copy_cell
 
+
 def move_word(game, new_location, location, word):
-    add_word(game, new_location, word)
+    """
+    Parameters
+    game: a dictionary that internally represents the game board.
+    location: a tuple with coordinates (i, j) of where the word should be added.
+    word: a string representing a Word object.
+
+    Mutates the given game representation to add word to new location and remove it from old.
+    """
+    c = game['width'] * new_location[0] + new_location[1]
+    copy_cell = list(game["cells"][c])
+    copy_cell.append(word)
+    game["cells"][c] = copy_cell
+
     remove_word(game, location, word)
 
-def next_location(game, location, direction):
+
+def get_next_location(game, location, direction):
     """
     Given a game representation (of the form returned from new_game), coordinates for a location 
     (tuple), and a direction, returns the new location (as a tuple) of the objects in the cell 
@@ -143,18 +132,13 @@ def next_location(game, location, direction):
 
 
 def push(game, copy_game, location, direction, word=None):
-    # word should be passed in once I figure out how to do this non-hard-coded. 
-    # Perhaps use isinstance on word for Push, Stop, etc?
-    # print()
-    # print("game:", game)
-    # print("copy_game:", copy_game)
-    # print("first line word:", word)
+    """
+    Pushes an object...??
+    """
     i, j = location
-    next_i, next_j = next_location(game, (i,j), direction)
-    # print(f"i = {i}, j = {j}, next_i = {next_i}, next_j = {next_j}")
+    next_i, next_j = get_next_location(game, (i,j), direction)
 
     if i == next_i and j == next_j:
-        # print("i == next_i, j == next_j")
         return False
     
     wall = "wall"
@@ -163,35 +147,21 @@ def push(game, copy_game, location, direction, word=None):
     if wall in get_cell(game, next_i, next_j):
         return False
     elif len(get_cell(game, next_i, next_j)) != 0:
-        # print("elif: next cell is not empty")
         text = get_cell(game, next_i, next_j)[0]
-        # print("word in next cell is:", word)
         result = push(game, copy_game, (next_i, next_j), direction, text)
         if not result:
             return False
-    # elif word in get_cell(game, next_i, next_j):
-    #     print("enter elif")
-    #     # print("rock is in", f'next_i: {next_i}, next_j: {next_j}, {get_cell(game, next_i, next_j)}')
-    #     result = push(game, copy_game, (next_i, next_j), direction, word)
-    #     if not result:
-    #         return False
-    # print("last line word:", word)
     remove_word(copy_game, (i, j), word)
     move_word(game, (next_i, next_j), (i, j), word)
 
-
     return True
 
-    # for obj in get_cell(game, next_i, next_j):
-    #     if isinstance(obj, Stop):
-    #         return False
-    #     elif isinstance(obj, Push):
-    #         return push(game, (next_i, next_j), direction, obj)
-    #     else:
-    #         remove_word(copy_game, (i, j), obj)
-    #         move_word(game, (next_i, next_j), (i, j), obj)
-    #         return game
 
+roles = {
+    "snek": "YOU",
+    "rock": "PUSH", 
+    "wall": "STOP"
+    }
 
 def step_game(game, direction):
     """
@@ -212,46 +182,30 @@ def step_game(game, direction):
     wall = "wall"
     rock = "rock"
 
-
-    can_move = True
     # Iterates through all the cells
     for c in range(len(copy_game["cells"])):
         # focuses on cells that have snek in them
         while snek in copy_game["cells"][c]:
             i, j = get_coordinates(game, c)
-            next_i, next_j = next_location(game, (i, j), direction)
-            print(f"i = {i}, next_i = {next_i}, j = {j}, next_j = {next_j}")
+            next_i, next_j = get_next_location(game, (i, j), direction)
             # snek can't move if wall is in its way
             if wall in get_cell(game, next_i, next_j):
-                return False
+                break
 
             # snek can push the rock, but only if there isn't a wall or edge in its way
             elif rock in get_cell(game, next_i, next_j):
-                print("entered elif rock in get cell")
                 if not push(game, copy_game, (next_i, next_j), direction, rock):
-                    return False
+                    break
             # snek can push text objects, but only if there isn't a wall or edge in its way
             # and if other objects in front of it have push property
             elif len(get_cell(game, next_i, next_j)) > 0 and get_cell(game, next_i, next_j)[0] in WORDS:
-                print("entered elif text in get cell")
                 word = get_cell(game, next_i, next_j)[0]
                 if not push(game, copy_game, (next_i, next_j), direction, word):
-                    return False
+                    break
 
-                    
-                # secondary_i, secondary_j = new_location(game, (next_i, next_j), direction)
-                # if wall in get_cell(game, secondary_i, secondary_j):
-                #     can_move = False
-                #     break
-                # elif rock in get_cell(game, secondary_i, secondary_j):
-
-                    #recursion?? Need to keep pushing rocks as long as its possible 
-
-            # if can_move:
             remove_word(copy_game, (i, j), snek)
             move_word(game, (next_i, next_j), (i, j), snek)
 
-    
     return False
 
 
