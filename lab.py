@@ -54,7 +54,6 @@ def new_game(level_description):
     
     return game
 
-
 def get_cell(game, i, j):
     """
     Given coordinates of row i and column j, returns the specified cell in the game representation.
@@ -161,7 +160,6 @@ def get_opposite_location(game, location, direction):
 
     return (next_i, next_j)
 
-
 def push(game, copy_game, location, direction, word, roles):
     """
     Pushes an object...??
@@ -191,6 +189,7 @@ def push(game, copy_game, location, direction, word, roles):
                 if roles.get(text): 
                     if "PUSH" in roles.get(text): 
                         result = result and push(game, copy_game, (next_i, next_j), direction, text, roles)
+
                     elif "YOU" in roles.get(text):
                         remove_word(copy_game, (i, j), word)
                         move_word_insert(game, (next_i, next_j), (i, j), word)
@@ -207,7 +206,6 @@ def push(game, copy_game, location, direction, word, roles):
         
         remove_word(copy_game, (i, j), word)
         move_word_insert(game, (next_i, next_j), (i, j), word)
-
 
     return True
 
@@ -244,9 +242,8 @@ def pull(game, copy_game, location, direction, word, roles):
 
         remove_word(copy_game, (i, j), word)
         move_word_append(game, (next_i, next_j), (i, j),  word) 
-
+        
     return True
-
 
 def get_next_cell(game, c, direction):
     i, j = get_coordinates(game, c)
@@ -255,7 +252,7 @@ def get_next_cell(game, c, direction):
     return get_cell(game, next_i, next_j)
 
 
-def find_NOUNS(game, i, j, direction, nouns=None):
+def find_subjects(game, i, j, direction, subj_lst):
     """
     Parameters:
     game: representation of gameplay, dictionary with height, width, and cells
@@ -263,85 +260,112 @@ def find_NOUNS(game, i, j, direction, nouns=None):
     direction = string
     Returns a list of NOUNS found
     """
-    if nouns is None: nouns = []
+
     cell = get_cell(game, i, j)
     next_i, next_j = get_next_location(game, (i, j), direction)
     next_cell = get_cell(game, next_i, next_j)
 
     for x in cell:
         if x in NOUNS:
-            nouns.append(x.lower())
+            subj_lst.append(x.lower())
             for y in next_cell:
                 if y == "AND":
                     next2_i, next2_j = get_next_location(game, (next_i, next_j), direction)
-                    find_NOUNS(game, next2_i, next2_j, direction, nouns)
-    return nouns
+                    find_subjects(game, next2_i, next2_j, direction, subj_lst)
 
 
-def find_PROPS(game, i, j, direction, props):
+def find_predicates(game, i, j, direction, pred_lst):
     """
     Returns a list of PROPERTIES
     """
     cell = get_cell(game, i, j)
     next_i, next_j = get_next_location(game, (i, j), direction)
     next_cell = get_cell(game, next_i, next_j)
-
+    
     for x in cell:
-        if x in PROPERTIES:
-            props.append(x)
+        if x in NOUNS or x in PROPERTIES:
+            pred_lst.append(x)
             for y in next_cell:
                 if y == "AND":
                     next2_i, next2_j = get_next_location(game, (next_i, next_j), direction)
-                    find_PROPS(game, next2_i, next2_j, direction, props)
-    return props
+                    find_predicates(game, next2_i, next2_j, direction, pred_lst)
 
 
-def parse_roles(game):
+def parse_rules(game):
     """
     Takes a game representation as argument. Parses through the cells of the game to 
     attribute properties to nouns. Returns roles (a dictionary).
     """
-    roles = {
-        # "snek": "YOU",
-        # "rock": "PUSH", 
-        # "wall": "STOP",
-        # "computer": "PULL",
-        # "bug": "DEFEAT",
-        # "flag": "WIN"
-        }
+    roles = {}
+    noun_swaps = {}
 
     for word in WORDS:
         roles[word] = "PUSH"
 
     for c in range(len(game["cells"])):
         if "IS" in game["cells"][c]:
+            vert_subj = []
+            vert_pred = []
+            horz_subj = []
+            horz_pred = []
+
             i, j = get_coordinates(game, c)
             up_i, up_j = get_next_location(game, (i, j), "up")
             down_i, down_j = get_next_location(game, (i, j), "down")
             left_i, left_j = get_next_location(game, (i, j), "left")
             right_i, right_j = get_next_location(game, (i, j), "right")
+            
+            find_subjects(game, up_i, up_j, "up", vert_subj)
+            find_predicates(game, down_i, down_j, "down", vert_pred)
 
-            vert_nouns = find_NOUNS(game, up_i, up_j, "up", [])
-            vert_props = find_PROPS(game, down_i, down_j, "down", [])
+            find_subjects(game, left_i, left_j, "left", horz_subj)
+            find_predicates(game, right_i, right_j, "right", horz_pred)
 
-            horz_nouns = find_NOUNS(game, left_i, left_j, "left", [])
-            horz_props = find_PROPS(game, right_i, right_j, "right", [])
+            if vert_pred:
+                vert_pred_nouns = []
+                vert_pred_props = []
+                for pred in vert_pred:
+                    if pred in NOUNS:
+                        vert_pred_nouns.append(pred)
+                    elif pred in PROPERTIES:
+                        vert_pred_props.append(pred)
 
-            if vert_nouns and vert_props:
-                for n in vert_nouns:
-                    if n in roles:
-                        roles[n].append(vert_props)
-                    else:
-                        roles[n] = vert_props
+            if horz_pred:
+                horz_pred_nouns = []
+                horz_pred_props = []
+                for pred in horz_pred:
+                    if pred in NOUNS:
+                        horz_pred_nouns.append(pred)
+                    elif pred in PROPERTIES:
+                        horz_pred_props.append(pred)
 
-            if horz_nouns and horz_props:
-                for m in horz_nouns:
-                    if m in roles:
-                        roles[m].append(horz_props)
-                    else:
-                        roles[m] = horz_props
-                        
-    return roles
+            if vert_subj and vert_pred:
+                if vert_pred_props:
+                    for subj in vert_subj:
+                        if subj.lower() in roles:
+                            roles[subj.lower()] += vert_pred_props
+                        else:
+                            roles[subj.lower()] = vert_pred_props                
+                if vert_pred_nouns:
+                    for subj in vert_subj:
+                        # subj can only mutate into another NOUN once. So any other NOUN in the
+                        # predicate list should be disregarded
+                        noun_swaps[subj.lower()] = vert_pred_nouns[0].lower()
+
+            if horz_subj and horz_pred:
+                if horz_pred_props:
+                    for subj in horz_subj:
+                        if subj in roles:
+                            roles[subj.lower()] += horz_pred_props
+                        else:
+                            roles[subj.lower()] = horz_pred_props
+                if horz_pred_nouns:
+                    for subj in horz_subj:
+                        # subj can only mutate into another NOUN once. So any other NOUN in the
+                        # predicate list should be disregarded
+                        noun_swaps[subj.lower()] = horz_pred_nouns[0].lower()
+
+    return roles, noun_swaps
 
 
 def step_game(game, direction):
@@ -354,13 +378,14 @@ def step_game(game, direction):
     step_game should return a Boolean: True if the game has been won after
     updating the state, and False otherwise.
     """
+    roles = parse_rules(game)[0]
+    noun_swaps = parse_rules(game)[1]
+
     copy_game = {
         "height": game["height"],
         "width": game["width"],
         "cells": list(game["cells"])
     }
-
-    roles = parse_roles(game)
 
     for c in range(len(copy_game["cells"])):
         i, j = get_coordinates(game, c)
@@ -405,21 +430,38 @@ def step_game(game, direction):
                 if move_YOU:
                     remove_word(copy_game, (i, j), text)
                     move_word_append(game, (next_i, next_j), (i, j), text)
+    if noun_swaps:
+        for cell in game["cells"]:
+            for idx, obj in enumerate(cell):
+                if obj in noun_swaps:
+                    print("obj:", obj)
+                    print("value for obj:", noun_swaps[obj])
+                    cell[idx] = noun_swaps[obj]
+                    print(game)
+                    print()
+
     # Victory check. Commented out b/c test 20 doesn't have WIN
-    roles = parse_roles(game)
+    print("game at end of move:", game["cells"])
+    roles = parse_rules(game)[0]
+    you = None
+    win = None
+    defeat = None
     for x in roles:
         if "YOU" in roles.get(x):
         	you = x
-        
+
         if "WIN" in roles.get(x):
         	win = x
-    
-    try:
-        for c in range(len(copy_game["cells"])):
-            if you in game["cells"][c] and win in game["cells"][c]:
-                return True
-    except UnboundLocalError:
-        return False
+
+        if "DEFEAT" in roles.get(x):
+            defeat = x
+
+    for c in range(len(game["cells"])):
+        if you in game["cells"][c] and defeat in game["cells"][c]:
+            i, j = get_coordinates(game, c)
+            remove_word(game, (i, j), defeat)
+        if you in game["cells"][c] and win in game["cells"][c]:
+            return True
     
     return False
 
