@@ -19,7 +19,6 @@ direction_vector = {
 }
 
 
-
 def new_game(level_description):
     """
     Given a description of a game state, create and return a game
@@ -98,8 +97,9 @@ def move_word_append(game, new_location, location, word):
     copy_cell = list(game["cells"][c])
     copy_cell.append(word)
     game["cells"][c] = copy_cell
-
+    move_word_append
     remove_word(game, location, word)
+
 
 def move_word_insert(game, new_location, location, word):
     c = game['width'] * new_location[0] + new_location[1]
@@ -108,6 +108,7 @@ def move_word_insert(game, new_location, location, word):
     game["cells"][c] = copy_cell
 
     remove_word(game, location, word)
+
 
 def get_next_location(game, location, direction):
     """
@@ -135,6 +136,7 @@ def get_next_location(game, location, direction):
 
     return (next_i, next_j)
 
+
 def get_opposite_location(game, location, direction):
     """
     Given a game representation (of the form returned from new_game), coordinates for a location 
@@ -159,6 +161,7 @@ def get_opposite_location(game, location, direction):
         next_j = j + delta_j
 
     return (next_i, next_j)
+
 
 def push(game, copy_game, location, direction, word, roles):
     """
@@ -192,7 +195,7 @@ def push(game, copy_game, location, direction, word, roles):
 
                     elif "YOU" in roles.get(text):
                         remove_word(copy_game, (i, j), word)
-                        move_word_insert(game, (next_i, next_j), (i, j), word)
+                        move_word_append(game, (next_i, next_j), (i, j), word)
                         return True
 
                     if not result:
@@ -200,17 +203,17 @@ def push(game, copy_game, location, direction, word, roles):
 
         if len(opp_cell) != 0:
             for text in opp_cell:
-                if roles.get(text) and "PULL" in roles.get(text):
+                if roles.get(text) and "PULL" in roles.get(text) and "PUSH" not in roles.get(text):
                     remove_word(copy_game, (opp_i, opp_j), text)
-                    move_word_append(game, (i, j), (opp_i, opp_j),  text) 
-        
+                    move_word_append(game, (i, j), (opp_i, opp_j),  text)
+
         remove_word(copy_game, (i, j), word)
-        move_word_insert(game, (next_i, next_j), (i, j), word)
+        move_word_append(game, (next_i, next_j), (i, j), word)
 
     return True
 
 
-def pull(game, copy_game, location, direction, word, roles):
+def pull(game, copy_game, location, direction, word, roles):   
     i, j = location
     next_i, next_j = get_next_location(game, (i,j), direction)
     next_cell = get_cell(game, next_i, next_j)
@@ -224,10 +227,11 @@ def pull(game, copy_game, location, direction, word, roles):
             for next_text in next_cell:
                 if (roles.get(next_text) and "STOP" in roles.get(next_text)) or (i == next_i and j == next_j):
                     return False
-                elif roles.get(next_text) and "PUSH" in roles.get(next_text):
+
+                elif roles.get(next_text) and "PUSH" in roles.get(next_text) and "PULL" not in roles.get(next_text):
                     remove_word(copy_game, (next_i, next_j), next_text)
                     next2_i, next2_j = get_next_location(game, (next_i, next_j), direction)
-                    move_word_insert(game, (next2_i, next2_j), (next_i, next_j), next_text)
+                    move_word_append(game, (next2_i, next2_j), (next_i, next_j), next_text)
 
         #base case: if opp_cell behind "YOU" obj is an edge:
         if i == opp_i and j == opp_j:
@@ -242,8 +246,9 @@ def pull(game, copy_game, location, direction, word, roles):
 
         remove_word(copy_game, (i, j), word)
         move_word_append(game, (next_i, next_j), (i, j),  word) 
-        
+
     return True
+
 
 def get_next_cell(game, c, direction):
     i, j = get_coordinates(game, c)
@@ -260,7 +265,6 @@ def find_subjects(game, i, j, direction, subj_lst):
     direction = string
     Returns a list of NOUNS found
     """
-
     cell = get_cell(game, i, j)
     next_i, next_j = get_next_location(game, (i, j), direction)
     next_cell = get_cell(game, next_i, next_j)
@@ -281,7 +285,7 @@ def find_predicates(game, i, j, direction, pred_lst):
     cell = get_cell(game, i, j)
     next_i, next_j = get_next_location(game, (i, j), direction)
     next_cell = get_cell(game, next_i, next_j)
-    
+
     for x in cell:
         if x in NOUNS or x in PROPERTIES:
             pred_lst.append(x)
@@ -379,7 +383,6 @@ def step_game(game, direction):
     updating the state, and False otherwise.
     """
     roles = parse_rules(game)[0]
-    noun_swaps = parse_rules(game)[1]
 
     copy_game = {
         "height": game["height"],
@@ -430,18 +433,14 @@ def step_game(game, direction):
                 if move_YOU:
                     remove_word(copy_game, (i, j), text)
                     move_word_append(game, (next_i, next_j), (i, j), text)
+    
+    noun_swaps = parse_rules(game)[1]
     if noun_swaps:
         for cell in game["cells"]:
             for idx, obj in enumerate(cell):
                 if obj in noun_swaps:
-                    print("obj:", obj)
-                    print("value for obj:", noun_swaps[obj])
                     cell[idx] = noun_swaps[obj]
-                    print(game)
-                    print()
 
-    # Victory check. Commented out b/c test 20 doesn't have WIN
-    print("game at end of move:", game["cells"])
     roles = parse_rules(game)[0]
     you = None
     win = None
