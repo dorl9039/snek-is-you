@@ -71,7 +71,7 @@ def new_game(params):
     else:
         level = params["level"]
         directory = params["directory"]
-        assert directory in ("test_levels", "puzzles")
+        assert directory in ("tests", "puzzles")
         with open(os.path.join(LOCATION, directory, level)) as f:
             if level.endswith(".json"):
                 level = json.load(f)
@@ -102,7 +102,7 @@ def step_game(params):
 def get_levels(params):
     return sorted(
         "/".join([dirname, fname])
-        for dirname in ("puzzles", "test_levels")
+        for dirname in ("puzzles", "tests/test_levels")
         for fname in os.listdir(os.path.join(LOCATION, dirname))
         if fname.endswith(".txt") or fname.endswith(".json")
     )

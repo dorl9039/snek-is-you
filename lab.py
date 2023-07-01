@@ -42,7 +42,7 @@ def new_game(level_description):
             game["cells"].append(cell)
     
     return game
-
+ 
 
 def get_cell(game, location):
     """
@@ -251,7 +251,6 @@ def pull(game, copy_game, location, direction, word, roles):
     Mutates game with by PULLing objects along until it isn't possible, 
     in which case returns False. 
     """
-    i, j = location
     next_location = get_next_location(game, location, direction)
     next_cell = get_cell(game, next_location)
     opp_location = get_opposite_location(game, location, direction)
