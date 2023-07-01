@@ -18,7 +18,8 @@ For example:
 
 
 ## Demo
-[Example gameplay]
+![snek_game_demo](https://github.com/dorl9039/snek-is-you/assets/121260645/b385ff1e-8d51-4ea4-bd08-f8040ad702a1)
+
 
 ## Challenges
 - Handling the sheer scope of the game. I broke down the challenges into smaller problems and started off by hard-coding certain rules. This helped me fully understand the basic game logic and figure out what helper functions I wanted to create.
