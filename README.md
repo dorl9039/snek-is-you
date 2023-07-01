@@ -12,16 +12,26 @@ The goal is to recreate a version of [Baba Is You](https://www.youtube.com/watch
 - **conjunction**: a mechanism for chaining nouns or properites in a rule
 
 For example:
-- "SNEK" "IS" "YOU" means that you control snek objects. But if you push a "ROCK" text object to replace the "SNEK" text object to create the rule "ROCK" "IS" "YOU", you now control rock graphical objects instead of sneks.
+- "SNEK" "IS" "YOU" means that you control snek objects. If you push a "ROCK" text object to replace the "SNEK" text object to create the rule "ROCK" "IS" "YOU", you now control rock graphical objects instead of sneks.
 
-- "FLAG" "IS "WIN" means that you need to touch the flag objects to win. You can replace "FLAG" with "ROCK" to mean that touching any rock object results in victory. Meanwhile, "FLAG" "IS" "YOU" "AND" "WIN" is an automatic win condition.
+- "FLAG" "IS "WIN" means that you need to touch the flag objects to win. You can replace "FLAG" with "ROCK" to mean that touching any rock object results in victory.
 
 
 ## Demo
-https://github.com/dorl9039/snek-is-you/assets/121260645/e63a8615-347b-468c-ba70-805d9de00212
+
+![snek_basic_game_demo](https://github.com/dorl9039/snek-is-you/assets/121260645/64728783-b399-4bcd-bf8d-4e20def85e25)
+
+Gameplay demo using 6.009's provided GUI
 
 
-Gameplay demonstration using 6.009's provided GUI
+![snek_push_pull_demo](https://github.com/dorl9039/snek-is-you/assets/121260645/cc1d4578-bd40-42ae-9f9c-49bc1db7b0a5)
+
+Gameplay demo using 6.009's provided GUI: PUSH and PULL interactions
+
+
+![snek_rules_change_demo](https://github.com/dorl9039/snek-is-you/assets/121260645/119bcada-f677-46d3-b334-b6b185d0e615)
+
+Gameplay demo using 6.009's provided GUI: move text objects to rewrite game rules 
 
 ## Challenges
 - Handling the sheer scope of the game. I broke down the challenges into smaller problems and started off by hard-coding certain rules. This helped me fully understand the basic game logic and figure out what helper functions I wanted to create.
