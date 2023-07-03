@@ -1,5 +1,5 @@
 # Project description
-Final lab assignment in the Spring 2022 iteration of MIT's 6.009: Fundamentals of Programming. The course provided the server, tests, and UI, and I implemented lab.py, which is the core game logic.
+Personal project based on the final lab assignment in the Spring 2022 iteration of MIT's 6.009: Fundamentals of Programming. The course provided the server, tests, and UI, and I implemented lab.py, which is the core game logic.
 
 The goal is to recreate a version of [Baba Is You](https://www.youtube.com/watch?v=z3_yA4HTJfs&ab_channel=NintendoofAmerica), a 2D puzzle video game in which the player can change the rules of the game as they are playing by moving the text objects that dictate gameplay rules. 
 
